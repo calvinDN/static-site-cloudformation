@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  S3BucketName:
+    Description: The name of the S3 bucket that contains index.html
+    Type: String
+Resources:
+  SampleSiteS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+    DeletionPolicy: Retain
+  SampleSiteS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SampleSiteS3
+      PolicyDocument:
+        Statement:
+          Action:
+            - "s3:GetObject"
+          Effect: "Allow"
+          Resource:
+            Fn::Join:
+              - ""
+              -
+                - "arn:aws:s3:::"
+                - Ref: SampleSiteS3
+                - "/*"
+          Principal: "*"
+Outputs:
+  WebsiteURL:
+    Description: URL for the website hosted on S3
+    Value: !GetAtt SampleSiteS3.WebsiteURL
+  S3BucketSecureURL:
+    Description: Name of the S3 bucket to hold website content
+    Value: !Sub
+        - https://${Domain}
+        - Domain: !GetAtt SampleSiteS3.DomainName
