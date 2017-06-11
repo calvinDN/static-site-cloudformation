@@ -1,23 +1,58 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  S3BucketName:
-    Description: The name of the S3 bucket that contains index.html
+  DomainName:
     Type: String
+Mappings:
+  RegionMap:
+    us-east-1:
+      S3hostedzoneID: Z3AQBSTGFYJSTF
+      websiteendpoint: s3-website-us-east-1.amazonaws.com
+    us-west-1:
+      S3hostedzoneID: Z2F56UZL2M1ACD
+      websiteendpoint: s3-website-us-west-1.amazonaws.com
+    us-west-2:
+      S3hostedzoneID: Z3BJ6K6RIION7M
+      websiteendpoint: s3-website-us-west-2.amazonaws.com
+    eu-west-1:
+      S3hostedzoneID: Z1BKCTXD74EZPE
+      websiteendpoint: s3-website-eu-west-1.amazonaws.com
+    ap-southeast-1:
+      S3hostedzoneID: Z3O0J2DXBE1FTB
+      websiteendpoint: s3-website-ap-southeast-1.amazonaws.com
+    ap-southeast-2:
+      S3hostedzoneID: Z1WCIGYICN2BYD
+      websiteendpoint: s3-website-ap-southeast-2.amazonaws.com
+    ap-northeast-1:
+      S3hostedzoneID: Z2M4EHUR26P7ZW
+      websiteendpoint: s3-website-ap-northeast-1.amazonaws.com
+    sa-east-1:
+      S3hostedzoneID: Z31GFT0UA1I2HV
+      websiteendpoint: s3-website-sa-east-1.amazonaws.com
 Resources:
-  SampleSiteS3:
+  RootBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref S3BucketName
-      AccessControl: PublicRead
+      BucketName: !Ref DomainName
+      # AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
-        ErrorDocument: error.html
+        ErrorDocument: 404.html
     DeletionPolicy: Retain
-  SampleSiteS3BucketPolicy:
+  WWWBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub
+          - www.${Domain}
+          - Domain: !Ref DomainName
+      AccessControl: BucketOwnerFullControl
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: !Ref DomainName
+  RootBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket:
-        Ref: SampleSiteS3
+        Ref: DomainName
       PolicyDocument:
         Statement:
           Action:
@@ -28,15 +63,60 @@ Resources:
               - ""
               -
                 - "arn:aws:s3:::"
-                - Ref: SampleSiteS3
+                - Ref: DomainName
                 - "/*"
           Principal: "*"
+  WWWBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Fn::Join:
+          - ""
+          -
+            - "www."
+            - Ref: DomainName
+      PolicyDocument:
+        Statement:
+          Action:
+            - "s3:GetObject"
+          Effect: "Allow"
+          Resource:
+            Fn::Join:
+              - ""
+              -
+                - "arn:aws:s3:::"
+                - "www."
+                - Ref: DomainName
+                - "/*"
+          Principal: "*"
+  DNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub
+          - ${Domain}.
+          - Domain: !Ref DomainName
+      Comment: Zone apex alias.
+      RecordSets:
+      -
+        Name: !Ref DomainName
+        Type: A
+        AliasTarget:
+          HostedZoneId: !FindInMap [ RegionMap, !Ref 'AWS::Region', S3hostedzoneID]
+          DNSName: !FindInMap [ RegionMap, !Ref 'AWS::Region', websiteendpoint]
+      -
+        Name: !Sub
+            - www.${Domain}
+            - Domain: !Ref DomainName
+        Type: CNAME
+        TTL: 900
+        ResourceRecords:
+        - !GetAtt WWWBucket.DomainName
 Outputs:
   WebsiteURL:
     Description: URL for the website hosted on S3
-    Value: !GetAtt SampleSiteS3.WebsiteURL
+    Value: !GetAtt RootBucket.WebsiteURL
   S3BucketSecureURL:
     Description: Name of the S3 bucket to hold website content
     Value: !Sub
         - https://${Domain}
-        - Domain: !GetAtt SampleSiteS3.DomainName
+        - Domain: !GetAtt RootBucket.DomainName
