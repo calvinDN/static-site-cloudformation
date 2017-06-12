@@ -4,4 +4,4 @@
 
 "calvindn.com@git+https://git@github.com/calvindn/calvindn.com.git":
   version "1.0.0"
-  resolved "git+https://git@github.com/calvindn/calvindn.com.git#3c72588029f36064cdced073b7279665d5332633"
+  resolved "git+https://git@github.com/calvindn/calvindn.com.git#2b1a84e1561917a42f1ee1e327de1b9313084b89"

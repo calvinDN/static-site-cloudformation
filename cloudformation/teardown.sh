@@ -10,6 +10,5 @@ aws --profile $AWS_PROFILE cloudformation delete-stack --stack-name $STACK_NAME
 aws --profile $AWS_PROFILE cloudformation wait stack-delete-complete --stack-name $STACK_NAME
 
 aws --profile $AWS_PROFILE s3 rb s3://$DOMAIN_NAME --force
-aws --profile $AWS_PROFILE s3 rb s3://www.$DOMAIN_NAME --force
 
 echo 'Teardown complete.'
