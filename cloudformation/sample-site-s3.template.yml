@@ -107,10 +107,8 @@ Resources:
         Name: !Sub
             - www.${Domain}
             - Domain: !Ref DomainName
-        Type: CNAME
-        TTL: 900
-        ResourceRecords:
-        - !GetAtt WWWBucket.DomainName
+        Type: A
+        AliasTarget: !Ref DomainName
 Outputs:
   WebsiteURL:
     Description: URL for the website hosted on S3
